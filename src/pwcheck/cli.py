@@ -9,6 +9,7 @@ from collections.abc import Sequence
 
 from pwcheck import __version__
 from pwcheck.analyzer import analyze_password
+from pwcheck.hibp import check_password
 from pwcheck.report import format_human, format_json
 
 MAX_PASSWORD_LENGTH = 4096
@@ -37,6 +38,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--stdin", action="store_true", help="read one password from standard input"
     )
     parser.add_argument("--json", action="store_true", help="print a JSON report")
+    parser.add_argument(
+        "--hibp", action="store_true", help="opt in to a HIBP hash-prefix network check"
+    )
     parser.add_argument(
         "--context",
         default="",
@@ -84,15 +88,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             token.strip() for token in arguments.context.split(",") if token.strip()
         )
         result = analyze_password(password, context)
+        breach = check_password(password) if arguments.hibp else None
+        if breach is not None and breach.status == "found":
+            result = analyze_password(password, context, breached=True)
         color = (
             sys.stdout.isatty()
             and "NO_COLOR" not in os.environ
             and not arguments.no_color
         )
         output = (
-            format_json(result) if arguments.json else format_human(result, color=color)
+            format_json(result, breach)
+            if arguments.json
+            else format_human(result, color=color, breach=breach)
         )
         print(output, flush=True)
+        if breach is not None and breach.status == "unavailable":
+            return 2
         return 0 if result.score >= 3 else 1
     except EOFError, getpass.GetPassWarning:
         print(
