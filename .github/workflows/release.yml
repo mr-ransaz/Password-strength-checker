@@ -1,0 +1,89 @@
+name: Windows release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        id: python
+        with:
+          python-version: "3.14"
+          architecture: x64
+          allow-prereleases: false
+      - name: Create job-local virtualenv
+        # Only bootstrap uses setup-python's selected interpreter.
+        run: |
+          & '${{ steps.python.outputs.python-path }}' -m venv .venv
+          if ($LASTEXITCODE -ne 0) { throw 'Virtualenv creation failed.' }
+      - name: Install development and optional build dependencies
+        run: |
+          .\.venv\Scripts\python.exe -m pip install -e ".[dev,build]"
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
+      - name: Require tag to match the package version
+        run: |
+          .\.venv\Scripts\python.exe -c "import os; from pwcheck import __version__; assert os.environ['RELEASE_TAG'] == f'v{__version__}'"
+          if ($LASTEXITCODE -ne 0) { throw 'Release tag does not match package version.' }
+      - name: Lint
+        run: .\.venv\Scripts\python.exe -m ruff check .
+      - name: Check formatting
+        run: .\.venv\Scripts\python.exe -m ruff format --check .
+      - name: Test with coverage
+        run: .\.venv\Scripts\python.exe -m pytest -q
+      - name: Build Windows artifacts and SHA-256 checksums
+        run: .\scripts\build_exe.ps1
+      - name: Smoke test executable, folder, extracted zip, and checksums
+        run: .\scripts\smoke_exe.ps1
+      - name: Preserve release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          if-no-files-found: error
+          compression-level: 0
+          path: |
+            dist/pwcheck.exe
+            dist/pwcheck-folder.zip
+            dist/SHA256SUMS.txt
+
+  release:
+    needs: build
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-release
+          path: dist
+      - name: Publish GitHub release assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $Assets = @('dist/pwcheck.exe', 'dist/pwcheck-folder.zip', 'dist/SHA256SUMS.txt')
+          gh release view $env:RELEASE_TAG --repo $env:RELEASE_REPOSITORY --json tagName 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:RELEASE_TAG @Assets --repo $env:RELEASE_REPOSITORY --clobber
+          } else {
+            gh release create $env:RELEASE_TAG @Assets --repo $env:RELEASE_REPOSITORY --verify-tag --title "pwcheck $env:RELEASE_TAG" --generate-notes
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub release publication failed.' }
