@@ -81,30 +81,46 @@ def _read_password(arguments: argparse.Namespace) -> str:
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the CLI and return 0 (good/strong), 1 (weak), or 2 (error)."""
-    arguments = build_parser().parse_args(argv)
+    effective_argv = list(sys.argv[1:] if argv is None else argv)
+    arguments = build_parser().parse_args(effective_argv)
     try:
-        password = _read_password(arguments)
-        context = tuple(
-            token.strip() for token in arguments.context.split(",") if token.strip()
+        interactive = (
+            not effective_argv
+            and bool(getattr(sys, "frozen", False))
+            and sys.stdin.isatty()
+            and sys.stdout.isatty()
         )
-        result = analyze_password(password, context)
-        breach = check_password(password) if arguments.hibp else None
-        if breach is not None and breach.status == "found":
-            result = analyze_password(password, context, breached=True)
-        color = (
-            sys.stdout.isatty()
-            and "NO_COLOR" not in os.environ
-            and not arguments.no_color
-        )
-        output = (
-            format_json(result, breach)
-            if arguments.json
-            else format_human(result, color=color, breach=breach)
-        )
-        print(output, flush=True)
-        if breach is not None and breach.status == "unavailable":
-            return 2
-        return 0 if result.score >= 3 else 1
+        if interactive:
+            print(f"pwcheck {__version__} - enter an empty password to exit.")
+        while True:
+            password = _read_password(arguments)
+            if interactive and not password:
+                return 0
+            context = tuple(
+                token.strip() for token in arguments.context.split(",") if token.strip()
+            )
+            result = analyze_password(password, context)
+            breach = check_password(password) if arguments.hibp else None
+            if breach is not None and breach.status == "found":
+                result = analyze_password(password, context, breached=True)
+            del password
+            color = (
+                sys.stdout.isatty()
+                and "NO_COLOR" not in os.environ
+                and not arguments.no_color
+            )
+            output = (
+                format_json(result, breach)
+                if arguments.json
+                else format_human(result, color=color, breach=breach)
+            )
+            print(output, flush=True)
+            if interactive:
+                print()
+                continue
+            if breach is not None and breach.status == "unavailable":
+                return 2
+            return 0 if result.score >= 3 else 1
     except EOFError, getpass.GetPassWarning:
         print(
             "Error: secure input unavailable; use --stdin with a trusted source.",
