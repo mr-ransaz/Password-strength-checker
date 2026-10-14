@@ -1,72 +1,63 @@
 # password-strength-checker
 
 [![CI](https://github.com/YOUR_USERNAME/password-strength-checker/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/password-strength-checker/actions/workflows/ci.yml)
+[![Python 3.14](https://img.shields.io/badge/python-3.14-blue)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A private-by-default Python CLI that estimates password strength, explains weaknesses, and suggests practical improvements.
 
 ## Features
 
-- Python 3.14+; zero third-party runtime dependencies.
+- Python 3.14 only; zero third-party runtime dependencies.
 - Secure no-echo prompt by default; explicit stdin and command-line input options.
 - Length and ASCII/Unicode character-class analysis, with estimated entropy and offline crack time.
 - Common-password and leetspeak checks against 563 bundled weak-password examples.
 - Forward/reverse QWERTY keyboard walks, ascending/descending sequences, repeated characters/blocks, years (1950–2039), valid DDMMYYYY dates, and predictable suffixes.
 - Optional personal-context matching without echoing the supplied tokens.
 - Scores from 0 (very weak) to 4 (strong), with suggestions ordered by impact.
+- Explicit low-score reasons for short inputs, limited character pools, and low estimated entropy, including when no pattern is detected.
 - Human reports, JSON schema version 1, TTY-aware ANSI colors, and `NO_COLOR` support.
 - Opt-in [Have I Been Pwned](https://haveibeenpwned.com/) checks using its password range API.
 - Immutable, typed result dataclasses and a deterministic analysis API.
 
 ## Installation
 
-Python **3.14 or newer** must be available as `python`. Replace `YOUR_USERNAME` in the clone URL and CI badge with the repository owner. The project is not assumed to be published on PyPI.
+Use **Python 3.14.x only**. Replace `YOUR_USERNAME` in the CI badge and package project URLs with the repository owner before publication. These URLs are placeholders, not verified destinations. The project is not assumed to be published on PyPI.
 
-From source:
-
-```console
-git clone https://github.com/YOUR_USERNAME/password-strength-checker.git
-cd password-strength-checker
-python -m venv .venv
-```
-
-Activate the environment in PowerShell:
+Clone your fork using Git. From the project root, use an existing Python 3.14 virtual environment at `.venv`. Creating that environment is a prerequisite to these repository commands; they never invoke global Python.
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\python.exe --version
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]" --no-build-isolation --no-cache-dir
+.\.venv\Scripts\python.exe -m pwcheck --version
 ```
 
-On Linux/macOS, activate with `source .venv/bin/activate` instead. Install and check the command:
-
-```console
-python -m pip install .
-pwcheck --version
-```
+The development install requires setuptools 77+ in the existing environment because build isolation is disabled. This does not add a runtime dependency. For runtime-only installation, omit the `dev` extra. All commands here use the explicit virtualenv interpreter; activation is unnecessary.
 
 Captured version output:
 
 ```text
-pwcheck 0.1.0
+pwcheck 0.1.1
 ```
 
-For an isolated CLI install with an existing [pipx](https://pipx.pypa.io/) installation, run from the cloned repository:
+An optional isolated installation with [pipx](https://pipx.pypa.io/) can target the local project and an explicit Python 3.14 executable. pipx installation has **not** been verified in this repository session. The installed console script is `pwcheck`; examples below invoke the equivalent module entry point with the explicit interpreter.
 
-```console
-pipx install --python python .
-pwcheck --version
-```
+## Why this exists / what I learned
 
-Choose a Python 3.14+ executable for `--python` if your default interpreter is older. Both `pwcheck` and `python -m pwcheck` are supported.
+This project makes a small password-strength heuristic easy to inspect and test for a cybersecurity portfolio. A character checklist misses familiar passwords and patterns; a score also needs an explanation that reflects its actual length, entropy, and pattern limits.
+
+The implementation records three practical lessons: separate deterministic analysis from secret-handling I/O, treat network lookup failures as explicit outcomes, and distinguish executed evidence from assumptions. The subprocess tests also show why a source checkout needs an explicit import path when testing an uninstalled package. Coverage checks are useful evidence, while live service and CI verification remain separate work.
 
 ## Usage
 
 Run `pwcheck` with no input flags to enter a password securely using `getpass`. The prompt does not echo characters. The program refuses the echoing fallback when a secure terminal is unavailable; use `--stdin` with a trusted source in that situation.
 
-The following five examples and the JSON example contain **public, synthetic demonstration inputs**. Never use them for an account. Outputs were captured from v0.1.0 on Python 3.14. The pipeline examples use PowerShell; after activation, `pwcheck` is on PATH. Writing literal passwords in pipeline commands also exposes them to shell history, so these commands are for demonstration only.
+The following six examples and the JSON example contain **public, synthetic demonstration inputs**. Never use them for an account. Outputs are captured from v0.1.1 on Python 3.14. The commands use PowerShell from the project root and the explicit virtualenv interpreter. Writing literal passwords in pipeline commands also exposes them to shell history, so these commands are for demonstration only. Regression tests rerun every usage example and compare stdout, stderr, and exit codes against this README.
 
 ### 1. A familiar password with a digit and punctuation
 
 ```powershell
-pwcheck --password 'Password1!' --no-color
+.\.venv\Scripts\python.exe -m pwcheck --password 'Password1!' --no-color
 ```
 
 stderr:
@@ -85,6 +76,8 @@ Estimated entropy: 10.0 bits (raw 65.7, penalties 50.0; ceilings may also apply)
 Estimated offline crack time: less than 1 second at 10^10 guesses/second
 Estimates are heuristic, not a security guarantee.
 Weaknesses:
+  - Too short for a good rating: fewer than 12 characters.
+  - Low estimated entropy: fewer than 60 bits after penalties and ceilings.
   - A common password or a predictable variant was found.
   - Trailing digits or symbols form a predictable suffix.
 Suggestions (highest impact first):
@@ -100,7 +93,7 @@ Exit code: **1**.
 ### 2. A keyboard walk through stdin
 
 ```powershell
-'qwertyuiop' | pwcheck --stdin --no-color
+'qwertyuiop' | .\.venv\Scripts\python.exe -m pwcheck --stdin --no-color
 ```
 
 ```text
@@ -111,6 +104,9 @@ Estimated entropy: 0.0 bits (raw 47.0, penalties 60.0; ceilings may also apply)
 Estimated offline crack time: less than 1 second at 10^10 guesses/second
 Estimates are heuristic, not a security guarantee.
 Weaknesses:
+  - Too short for a good rating: fewer than 12 characters.
+  - Single character class: lowercase letters only (smaller estimated search space).
+  - Low estimated entropy: fewer than 60 bits after penalties and ceilings.
   - A common password or a predictable variant was found.
   - A keyboard walk was found.
 Suggestions (highest impact first):
@@ -126,7 +122,7 @@ Exit code: **1**.
 ### 3. Personal information disguised with leetspeak
 
 ```powershell
-'J0hn-Canyon-1998!' | pwcheck --stdin --context 'john,smith,1998,astana' --no-color
+'J0hn-Canyon-1998!' | .\.venv\Scripts\python.exe -m pwcheck --stdin --context 'john,smith,1998,astana' --no-color
 ```
 
 ```text
@@ -137,6 +133,7 @@ Estimated entropy: 28.0 bits (raw 111.7, penalties 55.0; ceilings may also apply
 Estimated offline crack time: less than 1 second at 10^10 guesses/second
 Estimates are heuristic, not a security guarantee.
 Weaknesses:
+  - Low estimated entropy: fewer than 60 bits after penalties and ceilings.
   - The password contains supplied personal information.
   - A year or calendar date was found.
   - Trailing digits or symbols form a predictable suffix.
@@ -153,7 +150,7 @@ Exit code: **1**. Findings do not reveal the matched personal token.
 ### 4. A longer passphrase
 
 ```powershell
-'orbit velvet canyon lantern' | pwcheck --stdin --no-color
+'orbit velvet canyon lantern' | .\.venv\Scripts\python.exe -m pwcheck --stdin --no-color
 ```
 
 ```text
@@ -174,7 +171,7 @@ Exit code: **0**. This output demonstrates the heuristic; it does not establish 
 ### 5. A 14-character input using the module entry point
 
 ```powershell
-'mkjvuxpzqswfgh' | python -m pwcheck --stdin --no-color
+'mkjvuxpzqswfgh' | .\.venv\Scripts\python.exe -m pwcheck --stdin --no-color
 ```
 
 ```text
@@ -193,10 +190,35 @@ Suggestions (highest impact first):
 
 Exit code: **0**. Length 12–15 is capped at good, even when the entropy estimate is higher.
 
+### 6. A short digits-only input with no pattern matches
+
+```powershell
+'42' | .\.venv\Scripts\python.exe -m pwcheck --stdin --no-color
+```
+
+```text
+Score: 0/4 (very weak)
+Length: 2 characters
+Character classes: digits
+Estimated entropy: 6.6 bits (raw 6.6, penalties 0.0; ceilings may also apply)
+Estimated offline crack time: less than 1 second at 10^10 guesses/second
+Estimates are heuristic, not a security guarantee.
+Weaknesses:
+  - Too short: fewer than 8 characters.
+  - Single character class: digits only (smaller estimated search space).
+  - Low estimated entropy: fewer than 60 bits after penalties and ceilings.
+Suggestions (highest impact first):
+  - Use a 4-5 word passphrase chosen randomly from a large word list.
+  - Increase length to at least 16 characters.
+  - Use a password manager to generate a unique password for each account.
+```
+
+Exit code: **1**. A low score still has real explanations when the pattern list is empty.
+
 ### JSON example
 
 ```powershell
-'orbit velvet canyon lantern' | pwcheck --stdin --json
+'orbit velvet canyon lantern' | .\.venv\Scripts\python.exe -m pwcheck --stdin --json
 ```
 
 ```json
@@ -216,6 +238,7 @@ Exit code: **0**. Length 12–15 is capped at good, even when the entropy estima
   "suggestions": [
     "Use a password manager to generate a unique password for each account."
   ],
+  "reasons": [],
   "schema_version": 1,
   "offline_guesses_per_second": 10000000000,
   "offline_crack_seconds": 3.250680744240525e+37,
@@ -224,7 +247,7 @@ Exit code: **0**. Length 12–15 is capped at good, even when the entropy estima
 }
 ```
 
-Exit code: **0**. JSON never contains the password, matched substrings, context tokens, or ANSI escape sequences. `hibp` is null unless the optional check was requested. When requested it is an object with `status` (`found`, `not_found`, or `unavailable`), `count` (integer or null), `message`, and `source`. Finding objects contain `kind`, `penalty_bits`, and a fixed public `message`.
+Exit code: **0**. JSON never contains the password, matched substrings, context tokens, or ANSI escape sequences. The additive `reasons` list contains password-free explanations of low scores and is empty when the score is good or strong. `hibp` is null unless the optional check was requested. When requested it is an object with `status` (`found`, `not_found`, or `unavailable`), `count` (integer or null), `message`, and `source`. Finding objects contain `kind`, `penalty_bits`, and a fixed public `message`.
 
 All reports include metadata such as length and character classes, so treat the reports as potentially sensitive even though they omit the secret itself.
 
@@ -289,6 +312,8 @@ This is an **estimate**, not a measurement of password randomness or a calibrate
 
 Any detected pattern prevents a strong rating. Keyboard walks, sequences, or repetitions cap the score at fair; personal context or whole-password repetition caps it at weak; common passwords and confirmed breaches receive very weak. These are ceilings: sufficient length does not guarantee that score.
 
+For scores below good, reports explain applicable length limits (below 8 or below 12), a single observed character class, and adjusted entropy below 60 bits. These reasons describe the existing calculation and do not add penalties or require mixing character classes. They appear alongside pattern findings in human output and in JSON's `reasons` list.
+
 Common-password/context comparisons apply Unicode NFKC normalization and case folding, then `@ → a`, `0 → o`, `1 → l/i`, `3 → e`, `$ → s`, `5 → s`, and `7 → t`. Matching collapses i/l to handle ambiguous 1 substitutions without exponential variant expansion; this intentionally permits some false positives. The actual password is neither modified for input nor normalized before HIBP hashing.
 
 The average offline crack-time assumption is `max(1, 2^(entropy_bits - 1)) / 10^10` seconds: roughly half a uniform search space, with a minimum of one guess. Years use 365.25 days. Human output is bounded at “over 1 million centuries”; JSON numeric seconds become null only when the estimate exceeds the supported float range. Hardware, hash algorithms, dictionary attacks, and password reuse can change real crack times dramatically.
@@ -317,6 +342,7 @@ The detector work is O(n) for fixed keyboard/sequence catalogs and bounded block
 - Length counts code points, not visual grapheme clusters. Other Unicode characters use one approximate bucket, and the CLI does not model an account's encoding or password policies.
 - Crack times describe the assumed offline search only. They are not predictions for a particular account, online rate limiting, MFA, or a specific password hash.
 - Detection can miss transformations such as prepending predictable text or inserting separators into a weak base. Avoid reuse regardless of the score.
+- Live HIBP checks and GitHub-hosted CI are **NOT verified**. Network unit tests use mocks; a checked-in workflow and a placeholder badge do not establish hosted execution. pipx installation, publication, and live terminal no-echo behavior were not manually checked in this session.
 
 ## Project structure
 
@@ -327,6 +353,9 @@ password-strength-checker/
 ├── LICENSE
 ├── CONTRIBUTING.md
 ├── CHANGELOG.md
+├── AGENTS.md                # Working agreement and gate
+├── STATE.md                 # Current checkpoint and open items
+├── docs/NOTES.md            # Decisions and verification limits
 ├── .github/workflows/ci.yml
 ├── src/pwcheck/
 │   ├── __init__.py          # Version
@@ -348,17 +377,18 @@ The public dictionary is loaded once through `importlib.resources` when the patt
 
 ## Development
 
-Use a Python 3.14+ virtual environment and install the two direct development dependencies, pytest and Ruff:
+Use the existing Python 3.14 virtual environment and the three direct development dependencies: pytest, pytest-cov, and Ruff. Runtime dependencies remain empty.
 
-```console
-python -m pip install -e ".[dev]"
-ruff check .
-ruff format .
-ruff format --check .
-pytest -q
+```powershell
+.\.venv\Scripts\python.exe -m ruff check .
+.\.venv\Scripts\python.exe -m ruff format --check .
+.\.venv\Scripts\python.exe -m pytest -q
+git diff --check
 ```
 
-The suite covers empty/Unicode/very long input, all detector categories, leetspeak ambiguity, scoring boundaries, secret-free JSON/errors, getpass fallback refusal, CLI exit/color behavior, and mocked HIBP success/failure. GitHub Actions runs the checks on Python 3.14 for pushes and pull requests.
+The suite covers empty/Unicode/very long input, all detector categories, leetspeak ambiguity, scoring boundaries, secret-free JSON/errors, explicit low-score reasons, getpass fallback refusal, CLI exit/color behavior, install-independent module entry points, README outputs, and mocked HIBP success/failure. pytest configuration automatically measures statements and branches and fails below 90% total coverage, including on the CI workflow's pytest command. No module is excluded to reach the threshold. Subprocess entry points are executed but their coverage is not collected in the parent report.
+
+The workflow defines these checks for Python 3.14 pushes and pull requests; GitHub-hosted execution remains unverified. Follow [AGENTS.md](AGENTS.md), inspect [STATE.md](STATE.md), and record decisions or open checks in [docs/NOTES.md](docs/NOTES.md). STATE must be updated last before the checkpoint commit and local tag.
 
 ## Roadmap
 

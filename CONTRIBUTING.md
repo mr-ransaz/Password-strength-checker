@@ -1,15 +1,23 @@
 # Contributing
 
-Use Python 3.14+ and a virtual environment. Install with `python -m pip install -e ".[dev]"`.
+Use Python 3.14 only and the existing `.venv`. Read AGENTS.md and STATE.md,
+then confirm a clean tree and the last commit before editing. Run Python tools
+only through `.\.venv\Scripts\python.exe`; never use global tool launchers.
+The README describes the development installation and its prerequisites.
 
 Before submitting a pull request, run:
 
-```console
-ruff check .
-ruff format .
-ruff format --check .
-pytest -q
+```powershell
+.\.venv\Scripts\python.exe -m ruff check .
+.\.venv\Scripts\python.exe -m ruff format --check .
+.\.venv\Scripts\python.exe -m pytest -q
+git diff --check
 ```
+
+pytest measures statement/branch coverage and fails below 90%. Verify README
+examples and update README, docs/NOTES.md, and CHANGELOG; update STATE last.
+Use synthetic fixtures and preserve existing history. Do not push during a
+local checkpoint task or claim live HIBP/hosted CI verification from mocks.
 
 Keep runtime code stdlib-only, fully typed, and consistent with the existing src layout. Add focused regression tests for bugs and cover failure paths. Keep analysis deterministic and network access isolated in `hibp.py`; all network tests must use mocks.
 
