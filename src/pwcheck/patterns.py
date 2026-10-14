@@ -25,7 +25,7 @@ _KEYBOARDS = (
 )
 _YEAR = re.compile(r"(?<![0-9])(?:19[5-9][0-9]|20[0-3][0-9])(?![0-9])")
 _DATE = re.compile(r"(?<![0-9])([0-9]{2})([0-9]{2})([0-9]{4})(?![0-9])")
-_SUFFIX = re.compile(r"[0-9!-/:-@\[-`{-~]+$")
+_SUFFIX_CHARACTERS = frozenset(string.digits + string.punctuation)
 _REPEATED_CHAR = re.compile(r"(.)\1{3,}", re.DOTALL)
 # Bounded block size avoids unbounded backtracking on very long input.
 _REPEATED_BLOCK = re.compile(r"(.{2,32})\1", re.DOTALL)
@@ -114,10 +114,19 @@ def has_year_or_date(password: str) -> bool:
 
 def has_predictable_suffix(password: str) -> bool:
     """Detect trailing ASCII digits/symbols added to a letter-containing base."""
-    match = _SUFFIX.search(password)
+    start = _suffix_start(password)
     return bool(
-        match and any(character.isalpha() for character in password[: match.start()])
+        start is not None and any(character.isalpha() for character in password[:start])
     )
+
+
+def _suffix_start(password: str) -> int | None:
+    # An unanchored greedy regex ending in '$' can retry O(n) starting
+    # positions on long digit/symbol runs. A backward scan is O(n).
+    start = len(password)
+    while start and password[start - 1] in _SUFFIX_CHARACTERS:
+        start -= 1
+    return start if start < len(password) else None
 
 
 def is_common_password(
@@ -127,9 +136,9 @@ def is_common_password(
     if not password:
         return False
     forms = {_match_form(password)}
-    suffix = _SUFFIX.search(password)
-    if suffix:
-        forms.add(_match_form(password[: suffix.start()]))
+    start = _suffix_start(password)
+    if start is not None:
+        forms.add(_match_form(password[:start]))
     return any(_match_form(candidate) in forms for candidate in common_passwords)
 
 
