@@ -1,5 +1,25 @@
 # Engineering notes
 
+## Windows executable phase (v0.2.0)
+
+- Session starts from clean main at 1e87110, preserving the committed README URL.
+- On 2026-10-15, the current stable PyInstaller release is **6.22.3** (2026-09-12),
+  verified against [PyPI](https://pypi.org/project/pyinstaller/6.22.3/) and the
+  [official changelog](https://pyinstaller.org/en/stable/CHANGES.html). The changelog
+  records Python 3.14 support in 6.15.0; current release metadata also lists 3.14.
+- Pin PyInstaller 6.22.3 in the optional `build` extra, separate from `dev` and
+  empty runtime dependencies. It packages Python into Windows artifacts; it is
+  not imported by the password analyzer or CLI.
+- Use console-mode one-file and one-folder builds, explicitly include the public
+  dictionary, disable UPX, and generate Windows version resources from the package
+  version. Use a custom icon only if assets/pwcheck.ico actually exists.
+- No-argument frozen runs with terminal stdin/stdout will repeat secure getpass
+  prompts until empty input. Empty ends this convenience session with exit 0;
+  noninteractive or argument-driven runs retain the existing 0/1/2 behavior.
+- Local build and executable smoke gate: pending. The GitHub release workflow,
+  double-click behavior, SmartScreen behavior, and execution on a Python-free
+  machine are NOT verified.
+
 ## Decisions
 
 - Runtime code remains stdlib-only. pytest, pytest-cov, and Ruff are development
