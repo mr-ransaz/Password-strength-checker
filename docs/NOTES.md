@@ -16,9 +16,26 @@
 - No-argument frozen runs with terminal stdin/stdout will repeat secure getpass
   prompts until empty input. Empty ends this convenience session with exit 0;
   noninteractive or argument-driven runs retain the existing 0/1/2 behavior.
-- Local build and executable smoke gate: pending. The GitHub release workflow,
-  double-click behavior, SmartScreen behavior, and execution on a Python-free
-  machine are NOT verified.
+- Local Windows 11 x64 / Python 3.14.0 build: PASS with PyInstaller 6.22.3 and
+  hooks-contrib 2026.8. Both executable file/product versions are 0.2.0.
+- Smoke gate: PASS for nine checks across one-file, one-folder, and unzipped folder:
+  version 0, weak stdin 1, strong stdin 0. All run outside the repository root with
+  PYTHONHOME/PYTHONPATH/VIRTUAL_ENV removed and PATH restricted to System32. Full
+  synthetic password values never appear in captured stdout/stderr. Known weak
+  input confirms the bundled dictionary is loaded. Both SHA-256 entries match.
+- The ZIP includes the complete folder and dictionary; one-file has no embedded
+  Authenticode certificate (checked through the PE security directory). It is unsigned.
+- Build warning files were inspected: they list platform-conditional stdlib imports
+  and an import-graph collections.abc warning; the actual Windows CLI imports and
+  local smoke checks succeed. No warnings or checks were suppressed.
+- Generated specs, version text, caches, executables, ZIP, and checksums remain
+  under ignored build/dist paths. Cleanup validates absolute targets and rejects
+  reparse points. No user passwords are written by any build/smoke code.
+- The release workflow has a read-only build job and a separate `contents: write`
+  release job. setup-python's selected Python 3.14 bootstraps the job-local .venv;
+  subsequent Python commands use .venv. Local commands never use global Python.
+- The GitHub release workflow, Explorer double-click/live getpass, SmartScreen/
+  antivirus behavior, and execution on a Python-free machine are NOT verified.
 
 ## Decisions
 
@@ -40,7 +57,7 @@
   no score guarantees safety. Scores and penalties are unchanged by report fixes.
 - STATE records a predecessor commit and a release tag reference: a commit cannot
   contain its own hash. Update STATE last and resolve the tag for the release HEAD.
-- Package metadata restricts compatibility to `>=3.14,<3.15`; version 0.1.1 is
+- Package metadata restricts compatibility to `>=3.14,<3.15`; version 0.2.0 is
   shared with the CLI and the HIBP user-agent. Project URLs remain placeholders.
 
 ## Verification evidence
@@ -55,6 +72,8 @@
   guard is the other uncovered statement. These gaps are not hidden or waived.
 - README tests compare all six usage examples, JSON, stderr warning, version, and
   exit codes against actual module executions. Inputs are public synthetic fixtures.
+- v0.2.0 local suite before final checkpoint: 253 passing tests and 98.66% combined
+  statement/branch coverage. All CLI branches, including the frozen loop, are covered.
 - HIBP transport is mocked in tests; no real passwords are sent to the service.
 
 ## Commands for the local gate
@@ -65,6 +84,8 @@ Run from the project root with the explicit virtualenv interpreter:
 .\.venv\Scripts\python.exe -m ruff check .
 .\.venv\Scripts\python.exe -m ruff format --check .
 .\.venv\Scripts\python.exe -m pytest -q
+.\scripts\build_exe.ps1
+.\scripts\smoke_exe.ps1
 git diff --check
 ```
 
@@ -75,6 +96,9 @@ and diff checking must produce no output. STATE records the final gate result.
 
 - Live HIBP check: **NOT verified**.
 - GitHub-hosted CI: **NOT verified**; a checked-in workflow is not execution proof.
+- GitHub Windows release workflow / publication: **NOT verified**; it has not run.
+- Explorer double-click, actual terminal no-echo/repeat, SmartScreen/antivirus,
+  and execution on a machine without Python: **NOT verified**.
 - pipx installation, package-index publication, remote placeholder URLs, and a live
   interactive no-echo terminal prompt: **NOT verified**.
 - No pushes or remote releases are authorized for this checkpoint.

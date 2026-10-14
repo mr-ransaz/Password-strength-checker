@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.0] - 2026-10-15
+
+### Added
+
+- Optional `build` extra pinning PyInstaller 6.22.3 with verified Python 3.14 support.
+- Frozen no-argument terminal mode: secure getpass/report loop until empty input;
+  source and scripted exit-code behavior remains unchanged.
+- Windows build/smoke scripts for a console-mode one-file executable and one-folder
+  ZIP, explicit bundled dictionary, no UPX, generated version resources, and SHA-256.
+- Fake-based interactive regression tests and version-resource generator tests.
+- A tag-triggered Windows release workflow with read-only builds and write access
+  limited to the release job; hosted execution remains unverified.
+- Download placeholders, checksum instructions, local build guidance, and unsigned
+  executable/SmartScreen and manual-verification notes.
+
+### Verified locally
+
+- Python 3.14 Windows builds and nine smoke invocations across the executable,
+  expanded folder, and extracted ZIP, with alternate working directory and restricted
+  Python environment; version metadata, dictionary loading, and checksums pass.
+- Actual Explorer double-click, SmartScreen, Python-free-machine execution, and
+  GitHub workflow publication are not verified.
+
 ## [0.1.1] - 2026-10-15
 
 ### Fixed

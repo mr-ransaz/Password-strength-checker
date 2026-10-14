@@ -19,10 +19,12 @@ A private-by-default Python CLI that estimates password strength, explains weakn
 - Human reports, JSON schema version 1, TTY-aware ANSI colors, and `NO_COLOR` support.
 - Opt-in [Have I Been Pwned](https://haveibeenpwned.com/) checks using its password range API.
 - Immutable, typed result dataclasses and a deterministic analysis API.
+- Windows console builds: one-file executable, one-folder ZIP, and SHA-256 checksums.
+- Frozen no-argument terminal sessions repeat secure prompts until an empty input.
 
 ## Installation
 
-Use **Python 3.14.x only**. Replace `YOUR_USERNAME` in the CI badge and package project URLs with the repository owner before publication. These URLs are placeholders, not verified destinations. The project is not assumed to be published on PyPI.
+Use **Python 3.14.x only** for source installation. Replace `YOUR_USERNAME` in package project URLs and download links before publication. Those URLs are placeholders, not verified destinations. The existing CI badge points to this repository, but hosted execution has not been verified. The project is not assumed to be published on PyPI.
 
 Clone your fork using Git. From the project root, use an existing Python 3.14 virtual environment at `.venv`. Creating that environment is a prerequisite to these repository commands; they never invoke global Python.
 
@@ -48,9 +50,101 @@ This project makes a small password-strength heuristic easy to inspect and test 
 
 The implementation records three practical lessons: separate deterministic analysis from secret-handling I/O, treat network lookup failures as explicit outcomes, and distinguish executed evidence from assumptions. The subprocess tests also show why a source checkout needs an explicit import path when testing an uninstalled package. Coverage checks are useful evidence, while live service and CI verification remain separate work.
 
+## Download
+
+The Windows build produces three release assets. These links are **placeholders**;
+the v0.2.0 release has not been published or downloaded from GitHub:
+
+- [pwcheck.exe — one file](https://github.com/YOUR_USERNAME/password-strength-checker/releases/download/v0.2.0/pwcheck.exe)
+- [pwcheck-folder.zip — complete one-folder bundle](https://github.com/YOUR_USERNAME/password-strength-checker/releases/download/v0.2.0/pwcheck-folder.zip)
+- [SHA256SUMS.txt — checksums for both assets](https://github.com/YOUR_USERNAME/password-strength-checker/releases/download/v0.2.0/SHA256SUMS.txt)
+
+Local builds target 64-bit Windows using 64-bit Python 3.14. The bundles include
+the interpreter and dictionary; the target machine is intended to need no Python
+installation. Running on a separate machine without Python remains **NOT verified**.
+For the ZIP, extract the entire folder and keep `pwcheck.exe` beside `_internal`;
+do not copy the folder executable out on its own. One-file mode extracts program
+libraries/data to a temporary directory at startup; password input is never written
+there by pwcheck.
+
+**Verify SHA-256 before running.** Open PowerShell in the directory containing the
+downloaded assets and checksum file. For a local build, that directory is `dist`.
+This exact verification was also run against the local build:
+
+```powershell
+$Entries = Get-Content -LiteralPath .\SHA256SUMS.txt
+foreach ($Name in @('pwcheck.exe', 'pwcheck-folder.zip')) {
+    $Pattern = '^[a-f0-9]{64}  ' + [regex]::Escape($Name) + '$'
+    $Entry = @($Entries | Where-Object { $_ -match $Pattern })
+    if ($Entry.Count -ne 1) { throw 'Missing or duplicate checksum.' }
+    $Expected = ($Entry[0] -split '  ', 2)[0]
+    $Actual = (Get-FileHash -LiteralPath $Name -Algorithm SHA256).Hash
+    if ($Actual -ine $Expected) { throw 'SHA-256 mismatch.' }
+}
+'SHA-256 verified for both assets.'
+```
+
+Checksums detect file changes relative to that checksum file; they do not replace
+publisher authentication. The executable is **not code-signed**. Windows SmartScreen
+or an antivirus **may warn** about it. Actual SmartScreen/antivirus behavior has not
+been tested, and this project does not claim that scanners will accept the binary.
+
+From the executable's directory, a scripted version check is:
+
+```powershell
+.\pwcheck.exe --version
+```
+
+Captured local output: `pwcheck 0.2.0` (exit 0). The usual `--stdin`, `--json`,
+`--context`, and optional `--hibp` flags use the same CLI logic as source runs.
+The smoke script verifies weak/strong stdin inputs and their 1/0 exit codes.
+
+For double-click use, the console-mode executable is designed to prompt through
+`getpass`, display a report, and repeat until an empty password. This requires a
+frozen executable, no arguments, and terminal stdin/stdout. Empty input ends that
+session with exit 0. Any arguments or redirected handles retain single-run CLI
+behavior; an empty scripted password still returns 1. Repeat/no-echo control flow
+is tested with fakes; Explorer double-click and live terminal behavior still need
+manual verification. The source-module default remains one secure prompt.
+
+## Build the Windows executable locally
+
+Prerequisites: Windows, PowerShell 7.4+, and the existing 64-bit Python 3.14
+`.venv`. Run from the project root; global Python is never used:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,build]" --no-build-isolation --no-cache-dir
+.\scripts\build_exe.ps1
+.\scripts\smoke_exe.ps1
+```
+
+The `build` extra pins PyInstaller 6.22.3; runtime dependencies remain empty.
+The script **cleans this repository's `build/` and `dist/` directories**, rejects
+linked cleanup targets, and invokes `PyInstaller` through `.venv` Python. Its
+documented configuration is `--console --noupx` plus `--onefile` / `--onedir`,
+an explicit data mapping for `common_passwords.txt`, and a hidden import of
+`pwcheck.data`. Generated specs and caches stay under `build/`. Windows file/product
+version resources are generated from `src/pwcheck/__init__.py` and cross-checked
+against pyproject metadata. No version resource is hand-edited. A custom icon is
+used only when `assets/pwcheck.ico` exists; none was supplied for this build.
+
+Outputs are `dist/pwcheck.exe`, `dist/pwcheck-folder.zip`, and `dist/SHA256SUMS.txt`.
+The expanded folder is also left at `dist/folder/pwcheck/`. Artifacts are ignored
+by Git. The smoke script validates both checksum entries, Windows version metadata,
+and version/weak/strong invocations for all three layouts, including the extracted
+ZIP. Each invocation runs from `build/smoke-cwd` with Python-related environment
+variables removed and PATH restricted to Windows System32. This passed locally
+on this development machine; it is not a substitute for a Python-free machine test.
+
+The tag-triggered [release workflow](.github/workflows/release.yml) defines a
+read-only build job and a separate release job with `contents: write`. It requires
+the tag to match the package version, runs tests/build/smoke checks, and is configured
+to attach all three assets. A rerun may replace those named assets on an existing
+release. **The GitHub release workflow has NOT run and is NOT verified.**
+
 ## Usage
 
-Run `pwcheck` with no input flags to enter a password securely using `getpass`. The prompt does not echo characters. The program refuses the echoing fallback when a secure terminal is unavailable; use `--stdin` with a trusted source in that situation.
+Run the source CLI with no input flags to enter a password securely using `getpass`. The prompt does not echo characters. The program refuses the echoing fallback when a secure terminal is unavailable; use `--stdin` with a trusted source in that situation. Frozen no-argument terminal sessions use the repeat behavior described above; scripted use is unchanged.
 
 The following six examples and the JSON example contain **public, synthetic demonstration inputs**. Never use them for an account. Outputs are captured from v0.2.0 on Python 3.14. The commands use PowerShell from the project root and the explicit virtualenv interpreter. Writing literal passwords in pipeline commands also exposes them to shell history, so these commands are for demonstration only. Regression tests rerun every usage example and compare stdout, stderr, and exit codes against this README.
 
@@ -342,7 +436,8 @@ The detector work is O(n) for fixed keyboard/sequence catalogs and bounded block
 - Length counts code points, not visual grapheme clusters. Other Unicode characters use one approximate bucket, and the CLI does not model an account's encoding or password policies.
 - Crack times describe the assumed offline search only. They are not predictions for a particular account, online rate limiting, MFA, or a specific password hash.
 - Detection can miss transformations such as prepending predictable text or inserting separators into a weak base. Avoid reuse regardless of the score.
-- Live HIBP checks and GitHub-hosted CI are **NOT verified**. Network unit tests use mocks; a checked-in workflow and a placeholder badge do not establish hosted execution. pipx installation, publication, and live terminal no-echo behavior were not manually checked in this session.
+- Live HIBP checks, GitHub-hosted CI, and the GitHub release workflow are **NOT verified**. Network unit tests use mocks; checked-in workflows and badges do not establish hosted execution. pipx installation, publication, Explorer double-click, live terminal no-echo, SmartScreen/antivirus behavior, and a machine without Python were not manually checked in this session.
+- Executables are unsigned Windows x64 bundles. No ARM64, 32-bit, or other-machine compatibility is claimed; local smoke checks cover scripted use on this development machine only.
 
 ## Project structure
 
@@ -357,6 +452,11 @@ password-strength-checker/
 ├── STATE.md                 # Current checkpoint and open items
 ├── docs/NOTES.md            # Decisions and verification limits
 ├── .github/workflows/ci.yml
+├── .github/workflows/release.yml
+├── scripts/
+│   ├── build_exe.ps1         # Clean console-mode bundles and checksums
+│   ├── smoke_exe.ps1         # Executable/ZIP smoke checks outside project root
+│   └── windows_version.py   # Generate version resources from package metadata
 ├── src/pwcheck/
 │   ├── __init__.py          # Version
 │   ├── __main__.py          # python -m entry point
@@ -396,7 +496,8 @@ The workflow defines these checks for Python 3.14 pushes and pull requests; GitH
 - Consider dictionary segmentation and a word-generation-aware passphrase estimate.
 - Expand keyboard layouts and date formats with regression tests.
 - Evaluate a larger, responsibly sourced weak-password corpus.
-- Add release automation after publication details are established.
+- Validate the Windows release workflow and replace publication placeholders.
+- Perform double-click, SmartScreen, and Python-free-machine checks before claiming support.
 
 These are planned ideas, not current features.
 
