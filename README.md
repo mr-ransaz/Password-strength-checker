@@ -1,6 +1,6 @@
 # password-strength-checker
 
-[![CI](https://github.com/YOUR_USERNAME/password-strength-checker/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/password-strength-checker/actions/workflows/ci.yml)
+[![CI](https://github.com/mr-ransaz/Password-strength-checker/actions/workflows/ci.yml/badge.svg)](https://github.com/mr-ransaz/Password-strength-checker/actions/workflows/ci.yml)
 [![Python 3.14](https://img.shields.io/badge/python-3.14-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
