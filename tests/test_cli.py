@@ -126,6 +126,28 @@ def test_cli_context_json(
     assert "john" not in output.lower()
 
 
+@pytest.mark.parametrize("json_mode", [False, True])
+def test_short_digits_only_cli_report(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    json_mode: bool,
+) -> None:
+    monkeypatch.setattr(cli.sys, "stdin", io.StringIO("42\n"))
+    arguments = ["--stdin", "--no-color"]
+    if json_mode:
+        arguments.append("--json")
+    assert cli.main(arguments) == 1
+    output = capsys.readouterr().out
+    assert "Too short: fewer than 8 characters." in output
+    assert "Single character class: digits only" in output
+    assert "Low estimated entropy:" in output
+    assert "No listed patterns detected." not in output
+    if json_mode:
+        payload = json.loads(output)
+        assert payload["findings"] == []
+        assert len(payload["reasons"]) == 3
+
+
 @pytest.mark.parametrize(
     "args",
     [

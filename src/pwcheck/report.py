@@ -57,8 +57,9 @@ def format_human(
         lines.append(f"HIBP: {breach.message}")
         lines.append("Source: Have I Been Pwned (https://haveibeenpwned.com/)")
     lines.append("Weaknesses:")
+    lines.extend(f"  - {reason}" for reason in result.reasons)
     lines.extend(f"  - {finding.message}" for finding in result.findings)
-    if not result.findings:
+    if not result.findings and not result.reasons:
         lines.append("  - No listed patterns detected.")
     lines.append("Suggestions (highest impact first):")
     lines.extend(f"  - {suggestion}" for suggestion in result.suggestions)

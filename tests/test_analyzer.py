@@ -11,6 +11,7 @@ def test_empty_password() -> None:
     assert result.label == "very weak"
     assert result.character_classes == ()
     assert result.suggestions
+    assert "Too short: fewer than 8 characters." in result.reasons
 
 
 @pytest.mark.parametrize(
@@ -51,6 +52,7 @@ def test_unicode_and_passphrase() -> None:
     assert result.score == 4
     assert result.label == LABELS[4]
     assert result.findings == ()
+    assert result.reasons == ()
     assert analyze_password("山川星空雪月風花雲海森雨光鳥砂石").score == 4
 
 
@@ -69,6 +71,30 @@ def test_personal_context_caps_and_privacy() -> None:
     assert result.entropy_bits <= 28
     assert password not in str(asdict(result))
     assert "john" not in str(asdict(result)).lower()
+
+
+@pytest.mark.parametrize(
+    ("password", "description"),
+    [
+        ("mkvux", "lowercase letters only"),
+        ("MKVUX", "uppercase letters only"),
+        ("42", "digits only"),
+        ("!?", "symbols only"),
+        ("山川", "other Unicode characters only"),
+    ],
+)
+def test_single_class_low_score_reasons(password: str, description: str) -> None:
+    result = analyze_password(password)
+    assert result.score < 3
+    assert any(description in reason for reason in result.reasons)
+
+
+def test_reasons_explain_length_cap_without_low_entropy() -> None:
+    result = analyze_password("mK8?vR2!xZg")
+    assert result.findings == ()
+    assert result.entropy_bits >= 60
+    assert result.score == 2
+    assert result.reasons == ("Too short for a good rating: fewer than 12 characters.",)
 
 
 def test_pattern_score_caps() -> None:

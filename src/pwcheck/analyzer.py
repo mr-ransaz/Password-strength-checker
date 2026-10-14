@@ -42,6 +42,7 @@ class AnalysisResult:
     label: str
     findings: tuple[Pattern, ...]
     suggestions: tuple[str, ...]
+    reasons: tuple[str, ...] = ()
 
 
 def score_from_entropy(entropy_bits: float, length: int) -> int:
@@ -103,6 +104,29 @@ def analyze_password(
         score = min(score, 1)
     if "common_password" in kinds or breached:
         score = 0
+    reasons: list[str] = []
+    if score < 3:
+        if len(password) < 8:
+            reasons.append("Too short: fewer than 8 characters.")
+        elif len(password) < 12:
+            reasons.append("Too short for a good rating: fewer than 12 characters.")
+        if len(charset.classes) == 1:
+            description = {
+                "lowercase": "lowercase letters only",
+                "uppercase": "uppercase letters only",
+                "digits": "digits only",
+                "symbols": "symbols only",
+                "other_unicode": "other Unicode characters only",
+            }[charset.classes[0]]
+            reasons.append(
+                f"Single character class: {description} "
+                "(smaller estimated search space)."
+            )
+        if bits < 60:
+            reasons.append(
+                "Low estimated entropy: fewer than 60 bits "
+                "after penalties and ceilings."
+            )
     suggestions: list[str] = []
     if breached:
         suggestions.append("Replace this breached password everywhere it is used.")
@@ -127,4 +151,5 @@ def analyze_password(
         label=LABELS[score],
         findings=findings,
         suggestions=tuple(suggestions),
+        reasons=tuple(reasons),
     )
