@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "password-strength-checker"
-version = "0.1.1"
+version = "0.2.0"
 description = "A stdlib-only CLI with private password input and explainable strength estimates."
 readme = "README.md"
 requires-python = ">=3.14,<3.15"

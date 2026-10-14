@@ -37,7 +37,7 @@ The development install requires setuptools 77+ in the existing environment beca
 Captured version output:
 
 ```text
-pwcheck 0.1.1
+pwcheck 0.2.0
 ```
 
 An optional isolated installation with [pipx](https://pipx.pypa.io/) can target the local project and an explicit Python 3.14 executable. pipx installation has **not** been verified in this repository session. The installed console script is `pwcheck`; examples below invoke the equivalent module entry point with the explicit interpreter.
@@ -52,7 +52,7 @@ The implementation records three practical lessons: separate deterministic analy
 
 Run `pwcheck` with no input flags to enter a password securely using `getpass`. The prompt does not echo characters. The program refuses the echoing fallback when a secure terminal is unavailable; use `--stdin` with a trusted source in that situation.
 
-The following six examples and the JSON example contain **public, synthetic demonstration inputs**. Never use them for an account. Outputs are captured from v0.1.1 on Python 3.14. The commands use PowerShell from the project root and the explicit virtualenv interpreter. Writing literal passwords in pipeline commands also exposes them to shell history, so these commands are for demonstration only. Regression tests rerun every usage example and compare stdout, stderr, and exit codes against this README.
+The following six examples and the JSON example contain **public, synthetic demonstration inputs**. Never use them for an account. Outputs are captured from v0.2.0 on Python 3.14. The commands use PowerShell from the project root and the explicit virtualenv interpreter. Writing literal passwords in pipeline commands also exposes them to shell history, so these commands are for demonstration only. Regression tests rerun every usage example and compare stdout, stderr, and exit codes against this README.
 
 ### 1. A familiar password with a digit and punctuation
 
