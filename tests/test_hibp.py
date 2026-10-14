@@ -5,7 +5,7 @@ from urllib.error import HTTPError, URLError
 
 import pytest
 
-from pwcheck import hibp
+from pwcheck import __version__, hibp
 
 PASSWORD = "public-test-example"
 DIGEST = hashlib.sha1(PASSWORD.encode(), usedforsecurity=False).hexdigest().upper()
@@ -25,6 +25,7 @@ def test_found_and_request_privacy(monkeypatch: pytest.MonkeyPatch) -> None:
     assert request.full_url == f"https://api.pwnedpasswords.com/range/{DIGEST[:5]}"
     assert request.data is None
     assert request.get_header("Add-padding") == "true"
+    assert request.get_header("User-agent") == f"pwcheck/{__version__}"
     assert mock.call_args.kwargs == {"timeout": 5}
     assert PASSWORD not in repr(request.__dict__)
     assert DIGEST not in repr(request.__dict__)

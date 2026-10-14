@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
+from pwcheck import __version__
+
 TIMEOUT_SECONDS = 5
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 _RECORD = re.compile(r"([0-9A-Fa-f]{35}):([0-9]{1,15})")
@@ -36,7 +38,7 @@ def check_password(password: str) -> BreachResult:
         )
         request = Request(
             f"https://api.pwnedpasswords.com/range/{digest[:5]}",
-            headers={"User-Agent": "pwcheck/0.1.0", "Add-Padding": "true"},
+            headers={"User-Agent": f"pwcheck/{__version__}", "Add-Padding": "true"},
         )
         with urlopen(request, timeout=TIMEOUT_SECONDS) as response:
             body = response.read(MAX_RESPONSE_BYTES + 1)
