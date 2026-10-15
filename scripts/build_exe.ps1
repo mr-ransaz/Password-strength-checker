@@ -51,6 +51,11 @@ $PreviousTemp = $env:TEMP
 $PreviousTmp = $env:TMP
 $PreviousPyInstallerConfig = $env:PYINSTALLER_CONFIG_DIR
 try {
+    # Python 3.14 preserves the venv prefix under -S; inspect before site/.pth loading.
+    & $Python -I -S (Join-Path $PSScriptRoot 'build_environment.py')
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Build environment rejected before cleanup. Follow the clean-venv steps in README.'
+    }
     Invoke-Python -Arguments @('-c', 'import struct, sys; assert sys.version_info[:2] == (3, 14); assert struct.calcsize("P") == 8')
     Invoke-Python -Arguments @('-m', 'PyInstaller', '--version')
     # Only generated directories are removed; never source, .git, or .venv.

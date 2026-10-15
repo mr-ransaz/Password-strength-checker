@@ -86,8 +86,9 @@ foreach ($Name in @('pwcheck.exe', 'pwcheck-folder.zip')) {
 
 Checksums detect file changes relative to that checksum file; they do not replace
 publisher authentication. The executable is **not code-signed**. Windows SmartScreen
-or an antivirus **may warn** about it. Actual SmartScreen/antivirus behavior has not
-been tested, and this project does not claim that scanners will accept the binary.
+or an antivirus **may warn** about it. The user reports no warning on their clean local
+v0.2.0 build (PowerShell 7.6.7). Downloaded-asset warning behavior is **NOT VERIFIED**;
+that local result does not establish scanner acceptance on other machines.
 
 From the executable's directory, a scripted version check is:
 
@@ -104,8 +105,9 @@ For double-click use, the console-mode executable is designed to prompt through
 frozen executable, no arguments, and terminal stdin/stdout. Empty input ends that
 session with exit 0. Any arguments or redirected handles retain single-run CLI
 behavior; an empty scripted password still returns 1. Repeat/no-echo control flow
-is tested with fakes; Explorer double-click and live terminal behavior still need
-manual verification. The source-module default remains one secure prompt.
+is tested with fakes. The user reports Explorer double-click **PASS** on their clean
+local v0.2.0 build; downloaded binaries and other machines remain **NOT VERIFIED**.
+The source-module default remains one secure prompt.
 
 ## Build the Windows executable locally
 
@@ -119,6 +121,12 @@ Prerequisites: Windows, PowerShell 7.4+, and the existing 64-bit Python 3.14
 ```
 
 The `build` extra pins PyInstaller 6.22.3; runtime dependencies remain empty.
+Before importing PyInstaller or cleaning outputs, the script runs a stdlib-only
+preflight with `-I -S`: `pyvenv.cfg` must explicitly disable system site-packages,
+and `PYTHONPATH` must be absent, even if its value would be empty. Unsafe settings
+produce fixed diagnostic messages without printing environment values. The build
+does not silently clear or repair them; see the recreation steps below.
+
 The script **cleans this repository's `build/` and `dist/` directories**, rejects
 linked cleanup targets, and invokes `PyInstaller` through `.venv` Python. Its
 documented configuration is `--console --noupx` plus `--onefile` / `--onedir`,
@@ -141,6 +149,40 @@ read-only build job and a separate release job with `contents: write`. It requir
 the tag to match the package version, runs tests/build/smoke checks, and is configured
 to attach all three assets. A rerun may replace those named assets on an existing
 release. **The GitHub release workflow has NOT run and is NOT verified.**
+
+## Recreate a clean build environment
+
+The original local v0.2.0 environment inherited global site-packages and an unrelated
+project's source directory. The user reports recreating `.venv` with
+`include-system-site-packages = false`; their subsequent build search path no longer
+contained either source of contamination. Their clean rebuild, checksums, smoke 9/9,
+Ruff, format check, and pytest passed. These are **user-reported manual outcomes**.
+
+For a contaminated environment:
+
+1. Deactivate it and close Python/build processes using it.
+2. Move the old `.venv` aside as a backup, outside `build/` and `dist/`. Manually
+   create a fresh `.venv` using a trusted 64-bit Python 3.14 installation's `venv`
+   module with its default isolation; do **not** enable `--system-site-packages`.
+   This one-time bootstrap is performed outside the environment being replaced;
+   subsequent repository commands use only the new `.venv` interpreter. Do not
+   copy the old site-packages or editable-install path files into it.
+3. In PowerShell, remove `PYTHONPATH` from the current process, verify the new
+   environment, then install the project. This does not change user/system settings.
+
+```powershell
+if (Test-Path Env:\PYTHONPATH) { Remove-Item Env:\PYTHONPATH }
+.\.venv\Scripts\python.exe --version
+.\.venv\Scripts\python.exe -I -S .\scripts\build_environment.py
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,build]"
+```
+
+Expected: Python 3.14.x; the preflight exits 0 with no output; installation succeeds.
+The follow-up verified these commands against the existing isolated environment,
+without recreating it again. If a new shell restores `PYTHONPATH`, correct its source
+before building; the guard rejects its presence rather than echoing its value.
+Then use the normal build/smoke commands above. Local clean-build success does not
+verify GitHub CI, release publication, downloaded assets, or a machine without Python.
 
 ## Usage
 
@@ -436,7 +478,7 @@ The detector work is O(n) for fixed keyboard/sequence catalogs and bounded block
 - Length counts code points, not visual grapheme clusters. Other Unicode characters use one approximate bucket, and the CLI does not model an account's encoding or password policies.
 - Crack times describe the assumed offline search only. They are not predictions for a particular account, online rate limiting, MFA, or a specific password hash.
 - Detection can miss transformations such as prepending predictable text or inserting separators into a weak base. Avoid reuse regardless of the score.
-- Live HIBP checks, GitHub-hosted CI, and the GitHub release workflow are **NOT verified**. Network unit tests use mocks; checked-in workflows and badges do not establish hosted execution. pipx installation, publication, Explorer double-click, live terminal no-echo, SmartScreen/antivirus behavior, and a machine without Python were not manually checked in this session.
+- Live HIBP checks, GitHub-hosted CI, the GitHub release workflow, publication, downloaded-asset checks, pipx, and a machine without Python remain **NOT VERIFIED**. Network unit tests use mocks; checked-in workflows and badges do not establish hosted execution. The user reports local clean-build Explorer double-click PASS with no SmartScreen/antivirus warning; this does not verify downloaded-asset or other-machine behavior. A Kali/Linux VM is not a Windows x64 runtime test.
 - Executables are unsigned Windows x64 bundles. No ARM64, 32-bit, or other-machine compatibility is claimed; local smoke checks cover scripted use on this development machine only.
 
 ## Project structure
@@ -455,6 +497,7 @@ password-strength-checker/
 ├── .github/workflows/release.yml
 ├── scripts/
 │   ├── build_exe.ps1         # Clean console-mode bundles and checksums
+│   ├── build_environment.py  # Pure isolation checks and preflight entry point
 │   ├── smoke_exe.ps1         # Executable/ZIP smoke checks outside project root
 │   └── windows_version.py   # Generate version resources from package metadata
 ├── src/pwcheck/
@@ -497,7 +540,7 @@ The workflow defines these checks for Python 3.14 pushes and pull requests; GitH
 - Expand keyboard layouts and date formats with regression tests.
 - Evaluate a larger, responsibly sourced weak-password corpus.
 - Validate the Windows release workflow and replace publication placeholders.
-- Perform double-click, SmartScreen, and Python-free-machine checks before claiming support.
+- Verify downloaded-asset SmartScreen behavior and a Python-free Windows machine before broader support claims.
 
 These are planned ideas, not current features.
 

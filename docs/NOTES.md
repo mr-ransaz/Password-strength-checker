@@ -1,5 +1,49 @@
 # Engineering notes
 
+## Post-v0.2.0 isolation follow-up
+
+- Start: clean main at 2bb15fc; keep v0.2.0 at
+  2bb15fc095ea293b7a0fb0c039e9582db40d8488. No version bump or new/moved tag.
+- Root cause confirmed by the user: the original .venv inherited system
+  site-packages, and the PyInstaller module path also included another project's
+  source. Earlier execution/smoke evidence did not establish build isolation.
+- **User-reported manual results (PowerShell 7.6.7):** recreated .venv with
+  include-system-site-packages=false; rebuilt search path excludes the global
+  package directory and unrelated source; one-file/one-folder builds and checksums
+  PASS; smoke 9/9 plus PE versions/dictionary/alternate directory PASS; Ruff,
+  format check, and pytest PASS; Explorer double-click PASS; no local-build
+  SmartScreen or antivirus warning observed. These were not rerun as human checks
+  by the agent and do not verify downloaded assets or another machine.
+- **Observed in this follow-up:** Python 3.14.0, pyvenv.cfg explicitly false, no
+  PYTHONPATH, and PowerShell 7.6.5 in the agent command session. The user-reported
+  PowerShell 7.6.7 result is kept separate from this session's measurements.
+- Add a stdlib-only preflight before any PyInstaller import or build/dist cleanup.
+  Run it as a script with -I -S: Python 3.14 preserves the venv prefix under -S,
+  while site initialization and PYTHONPATH import injection are disabled for the
+  guard. os.environ still exposes the presence of PYTHONPATH for rejection.
+- Pure logic requires exactly one include-system-site-packages=false setting;
+  missing, duplicate, true, and unknown values fail closed. Reject any PYTHONPATH
+  key case-insensitively, including empty values. Diagnostics never reveal values.
+- Guard acceptance and deliberate PYTHONPATH rejection were executed; rejection
+  occurred before cleanup and existing artifact checksums were unchanged.
+- In the agent PowerShell 7.6.5 session, passing $null to the .NET environment
+  setter left an empty PYTHONPATH, which the guard correctly rejected. Verified
+  removal uses `if (Test-Path Env:\PYTHONPATH) { Remove-Item Env:\PYTHONPATH }`;
+  the subsequent isolated preflight exits 0. This removes only the process variable.
+- [Clean-venv recreation](../README.md#recreate-a-clean-build-environment): deactivate,
+  back up old .venv outside build/dist, manually bootstrap a fresh default-isolated
+  Python 3.14 .venv, do not copy old packages/path files, remove process PYTHONPATH,
+  run the isolated preflight, then install through .venv Python. Recreation itself
+  was already performed by the user and was not repeated by this follow-up.
+- No full executable rebuild is needed for this preflight-only change; user-reported
+  clean-build/smoke evidence above is not relabeled as an agent-run build.
+- Follow-up gate: Ruff lint/format PASS; 283 tests PASS, including 30 added cases
+  for pure validation/guard entry points; application statement/branch coverage
+  remains 98.66%. README command verification and editable dev/build install PASS.
+- Python-free Windows machine: **NOT VERIFIED**; there is no second Windows machine,
+  and the Kali VM is not applicable. Git push, GitHub CI, release workflow, publication,
+  and downloaded-asset checks remain **NOT VERIFIED**. No push is authorized.
+
 ## Windows executable phase (v0.2.0)
 
 - Session starts from clean main at 1e87110, preserving the committed README URL.
@@ -34,8 +78,10 @@
 - The release workflow has a read-only build job and a separate `contents: write`
   release job. setup-python's selected Python 3.14 bootstraps the job-local .venv;
   subsequent Python commands use .venv. Local commands never use global Python.
-- The GitHub release workflow, Explorer double-click/live getpass, SmartScreen/
-  antivirus behavior, and execution on a Python-free machine are NOT verified.
+- At the original checkpoint, Explorer/SmartScreen results were not verified;
+  the user-reported local checks above supersede that status for that build only.
+  The release workflow, downloaded-asset behavior, and Python-free machine remain
+  NOT VERIFIED.
 
 ## Decisions
 
@@ -97,8 +143,9 @@ and diff checking must produce no output. STATE records the final gate result.
 - Live HIBP check: **NOT verified**.
 - GitHub-hosted CI: **NOT verified**; a checked-in workflow is not execution proof.
 - GitHub Windows release workflow / publication: **NOT verified**; it has not run.
-- Explorer double-click, actual terminal no-echo/repeat, SmartScreen/antivirus,
-  and execution on a machine without Python: **NOT verified**.
-- pipx installation, package-index publication, remote placeholder URLs, and a live
-  interactive no-echo terminal prompt: **NOT verified**.
+- Explorer double-click: **user-reported PASS** on the clean local v0.2.0 build,
+  without SmartScreen/antivirus warning. Downloaded-asset/other-machine behavior:
+  **NOT VERIFIED**. No separate live terminal measurement was made by the agent.
+- Execution on a Windows machine without Python, downloaded assets, pipx installation,
+  package-index publication, and remote placeholder URLs: **NOT VERIFIED**.
 - No pushes or remote releases are authorized for this checkpoint.

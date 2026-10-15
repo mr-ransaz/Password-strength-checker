@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- Refuse Windows builds before cleanup/PyInstaller when system site-packages are
+  enabled or PYTHONPATH is present, including empty values. The preflight runs
+  with isolated/no-site startup and returns fixed diagnostics without path values.
+- Add pure-check and preflight regression tests, and document clean-venv recreation.
+
+### Verification notes
+
+- User reports clean-venv rebuild/checksums, smoke 9/9, lint/format/tests, and local
+  Explorer double-click PASS on PowerShell 7.6.7, with no SmartScreen/antivirus warning.
+- Downloaded assets, GitHub CI/release workflow, publication, and a Python-free
+  Windows machine remain NOT VERIFIED. The v0.2.0 tag is not moved.
+
 ## [0.2.0] - 2026-10-15
 
 ### Added
@@ -20,8 +36,9 @@
 - Python 3.14 Windows builds and nine smoke invocations across the executable,
   expanded folder, and extracted ZIP, with alternate working directory and restricted
   Python environment; version metadata, dictionary loading, and checksums pass.
-- Actual Explorer double-click, SmartScreen, Python-free-machine execution, and
-  GitHub workflow publication are not verified.
+- At the original checkpoint, Explorer/SmartScreen results were unverified; see
+  the later user-reported local results above. Python-free-machine execution,
+  downloaded assets, and GitHub workflow publication remain NOT VERIFIED.
 
 ## [0.1.1] - 2026-10-15
 
