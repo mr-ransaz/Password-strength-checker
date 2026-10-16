@@ -24,7 +24,7 @@ A private-by-default Python CLI that estimates password strength, explains weakn
 
 ## Installation
 
-Use **Python 3.14.x only** for source installation. Replace `YOUR_USERNAME` in package project URLs and download links before publication. Those URLs are placeholders, not verified destinations. The existing CI badge points to this repository, but hosted execution has not been verified. The project is not assumed to be published on PyPI.
+Use **Python 3.14.x only** for source installation. Replace `MR_RANSAZ` in package project URLs and download links before publication. Those URLs are placeholders, not verified destinations. The existing CI badge points to this repository, but hosted execution has not been verified. The project is not assumed to be published on PyPI.
 
 Clone your fork using Git. From the project root, use an existing Python 3.14 virtual environment at `.venv`. Creating that environment is a prerequisite to these repository commands; they never invoke global Python.
 
@@ -55,9 +55,9 @@ The implementation records three practical lessons: separate deterministic analy
 The Windows build produces three release assets. These links are **placeholders**;
 the v0.2.0 release has not been published or downloaded from GitHub:
 
-- [pwcheck.exe — one file](https://github.com/YOUR_USERNAME/password-strength-checker/releases/download/v0.2.0/pwcheck.exe)
-- [pwcheck-folder.zip — complete one-folder bundle](https://github.com/YOUR_USERNAME/password-strength-checker/releases/download/v0.2.0/pwcheck-folder.zip)
-- [SHA256SUMS.txt — checksums for both assets](https://github.com/YOUR_USERNAME/password-strength-checker/releases/download/v0.2.0/SHA256SUMS.txt)
+- [pwcheck.exe — one file](https://github.com/mr-ransaz/Password-strength-checker/releases/download/v0.2.0/pwcheck.exe)
+- [pwcheck-folder.zip — complete one-folder bundle](https://github.com/mr-ransaz/Password-strength-checker/releases/download/v0.2.0/pwcheck-folder.zip)
+- [SHA256SUMS.txt — checksums for both assets](https://github.com/mr-ransaz/Password-strength-checker/releases/download/v0.2.0/SHA256SUMS.txt)
 
 Local builds target 64-bit Windows using 64-bit Python 3.14. The bundles include
 the interpreter and dictionary; the target machine is intended to need no Python

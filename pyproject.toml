@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.14,<3.15"
 license = "MIT"
 license-files = ["LICENSE"]
-authors = [{ name = "Your Name" }]
+authors = [{ name = "mr-ransaz" }]
 dependencies = []
 keywords = ["password", "security", "cli", "entropy", "education", "privacy"]
 classifiers = [
@@ -27,10 +27,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/YOUR_USERNAME/password-strength-checker"
-Repository = "https://github.com/YOUR_USERNAME/password-strength-checker"
-Issues = "https://github.com/YOUR_USERNAME/password-strength-checker/issues"
-Changelog = "https://github.com/YOUR_USERNAME/password-strength-checker/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/mr-ransaz/Password-strength-checker"
+Repository = "https://github.com/mr-ransaz/Password-strength-checker"
+Issues = "https://github.com/mr-ransaz/Password-strength-checker/issues"
+Changelog = "https://github.com/mr-ransaz/Password-strength-checker/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-cov>=7", "ruff>=0.14"]
