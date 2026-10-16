@@ -546,4 +546,4 @@ These are planned ideas, not current features.
 
 ## License
 
-[MIT](LICENSE), copyright 2026 Your Name. Replace the author placeholder before publishing.
+[MIT](LICENSE), copyright 2026 mr-ransaz. Replace the author placeholder before publishing.
