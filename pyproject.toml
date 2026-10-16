@@ -47,7 +47,7 @@ pwcheck = ["data/common_passwords.txt", "py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["."]
 addopts = "--strict-markers --cov=pwcheck --cov-branch --cov-report=term-missing --cov-fail-under=90"
 
 [tool.coverage.run]
